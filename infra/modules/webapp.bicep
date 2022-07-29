@@ -2,6 +2,8 @@ param projectName string
 param location string = resourceGroup().location
 param environment string
 
+param keyVaultName string
+
 param appServicePlanName string
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' existing = {
@@ -72,6 +74,20 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
         }
       ]
     }
+  }
+}
+
+resource appServiceConfig 'Microsoft.Web/sites/config@2021-03-01' = {
+  name: 'appsettings'
+  kind: 'string'
+  parent: appService
+  properties: {
+    appSettings: [
+      {
+        name: 'KeyVaultName'
+        value: keyVaultName
+      }
+    ]
   }
 }
 

@@ -52,6 +52,7 @@ module appService 'modules/webapp.bicep' = {
     environment: environment
     location: location
     projectName: projectName
+    keyVaultName: keyVault.outputs.keyVaultName
   }
 }
 
