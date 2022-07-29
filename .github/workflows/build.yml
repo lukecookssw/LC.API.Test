@@ -14,8 +14,8 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
-      - name: Test
-        run: dotnet test **/*[Tt]ests/*.csproj --configuration Release --no-build
+      # - name: Test
+      #   run: dotnet test **/*[Tt]ests/*.csproj --configuration Release --no-build
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./published
       
