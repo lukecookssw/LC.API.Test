@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Build and deploy
 
 on:
@@ -8,44 +9,57 @@ jobs:
   build:
     name: Build and upload artifacts
     uses: ./.github/workflows/build.yml
-  deploy_dev:
-    name: Deploy dev
-    environment: dev
-    needs: build
+  
+  predeploy:
     uses: ./.github/workflows/az-deploy.yml
+    needs: build
     with:
       ENVIRONMENT: dev
-      RESOURCE_GROUP: LC.API.Test
+      RESOURCE_GROUP: LC.API.Dev
       APP_SERVICE_PLAN: LinuxSPBasicB1
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
       SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
 
-  deploy_staging:
-    name: Deploy staging
-    environment: staging
-    needs: deploy_dev
-    uses: ./.github/workflows/az-deploy.yml
-    with:
-      ENVIRONMENT: staging
-      RESOURCE_GROUP: LC.API.Staging
-      APP_SERVICE_PLAN: LinuxSPBasicB1
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
-      SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
+  # deploy_dev:
+  #   name: Deploy dev
+  #   environment: dev
+  #   needs: build
+  #   uses: ./.github/workflows/az-deploy.yml
+  #   with:
+  #     ENVIRONMENT: dev
+  #     RESOURCE_GROUP: LC.API.Dev
+  #     APP_SERVICE_PLAN: LinuxSPBasicB1
+  #   secrets:
+  #     AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+  #     SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
+  #     SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
 
-  deploy_prod:
-    name: Deploy prod
-    environment: prod
-    needs: deploy_staging
-    uses: ./.github/workflows/az-deploy.yml
-    with:
-      ENVIRONMENT: prod
-      RESOURCE_GROUP: LC.API.Production
-      APP_SERVICE_PLAN: LinuxSPBasicB1
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
-      SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
+  # deploy_staging:
+  #   name: Deploy staging
+  #   environment: staging
+  #   needs: deploy_dev
+  #   uses: ./.github/workflows/az-deploy.yml
+  #   with:
+  #     ENVIRONMENT: staging
+  #     RESOURCE_GROUP: LC.API.Staging
+  #     APP_SERVICE_PLAN: LinuxSPBasicB1
+  #   secrets:
+  #     AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+  #     SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
+  #     SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
+
+  # deploy_prod:
+  #   name: Deploy prod
+  #   environment: prod
+  #   needs: deploy_staging
+  #   uses: ./.github/workflows/az-deploy.yml
+  #   with:
+  #     ENVIRONMENT: prod
+  #     RESOURCE_GROUP: LC.API.Production
+  #     APP_SERVICE_PLAN: LinuxSPBasicB1
+  #   secrets:
+  #     AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+  #     SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
+  #     SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
