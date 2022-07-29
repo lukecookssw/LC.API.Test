@@ -51,8 +51,8 @@ jobs:
           --template-file .\infra\main.bicep `
           --parameters environment=${{ inputs.ENVIRONMENT }} `
             appServicePlanName=${{ inputs.APP_SERVICE_PLAN }}
-            sqlAdministratorsLoginName=$env:sqlAdminGroup `
-            sqlAdministratorsObjectId=$env:sqlAdminSid `
+            sqlAdministratorsLoginName=${{ env.sqlAdminGroup }} `
+            sqlAdministratorsObjectId=${{ env.sqlAdminSid }} `
             | convertfrom-json | foreach properties | foreach outputs `
             
             | Get-Member -MemberType NoteProperty | ForEach-Object { `
