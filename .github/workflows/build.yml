@@ -1,0 +1,35 @@
+name: Build API
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup .NET Core SDK
+        uses: actions/setup-dotnet@v2
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+      - name: Test
+        run: dotnet test **/*[Tt]ests/*.csproj --configuration Release --no-build
+      - name: Publish
+        run: dotnet publish --configuration Release --no-build --output ./published
+      
+      # api 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: api
+          path: ./published
+          retention-days: 2
+      # infra
+      - name: Upload Infra Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: infra
+          path: ./infra
+          retention-days: 2
