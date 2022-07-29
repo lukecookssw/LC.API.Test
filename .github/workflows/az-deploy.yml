@@ -54,7 +54,7 @@ jobs:
             sqlAdministratorsLoginName=$env:sqlAdminGroup `
             sqlAdministratorsObjectId=$env:sqlAdminSid `
             | convertfrom-json | foreach properties | foreach outputs `
-            | Get-Member -MemberType NoteProperty | ForEach-Object { `
+            | Get-Member $_. -MemberType NoteProperty | ForEach-Object { `
             echo "::set-output name=$_.name::$out.$name.value" }
             
     
