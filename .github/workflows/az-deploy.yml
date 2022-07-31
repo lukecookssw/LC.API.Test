@@ -46,7 +46,7 @@ jobs:
         sqlAdminGroup: ${{ secrets.SQL_ADMIN_GROUP }}
         sqlAdminSid: ${{ secrets.SQL_ADMIN_GROUP_SID }}
       run: | 
-        az deployment group create `
+        $out = az deployment group create `
           --resource-group ${{ inputs.RESOURCE_GROUP }} `
           --template-file .\infra\main.bicep `
           --parameters environment=${{ inputs.ENVIRONMENT }} `
@@ -54,8 +54,10 @@ jobs:
             sqlAdministratorsLoginName=$env:sqlAdminGroup `
             sqlAdministratorsObjectId=$env:sqlAdminSid `
             | convertfrom-json | foreach properties | foreach outputs `
-            | Get-Member $_. -MemberType NoteProperty | ForEach-Object { `
-            echo "::set-output name=$_.name::$out.$name.value" }
+        $out | Get-Member -MemberType NoteProperty | ForEach-Object { `
+            $keyname = $_.Name `
+            $value = $out.$keyname.value `
+            echo "::set-output name=$keyname::$value" }
             
     
     # Deploy Web API
