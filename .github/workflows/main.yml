@@ -17,7 +17,7 @@ jobs:
     with:
       ENVIRONMENT: dev
       RESOURCE_GROUP: LC.API.Dev
-      APP_SERVICE_PLAN: LinuxSPBasicB1
+      APP_SERVICE_PLAN: LCWinSP
       APP_SERVICE_PLAN_RESOURCE_GROUP: LC.AppServicePlans
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
@@ -31,7 +31,7 @@ jobs:
     with:
       ENVIRONMENT: staging
       RESOURCE_GROUP: LC.API.Staging
-      APP_SERVICE_PLAN: LinuxSPBasicB1
+      APP_SERVICE_PLAN: LCWinSP
       APP_SERVICE_PLAN_RESOURCE_GROUP: LC.AppServicePlans
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
@@ -45,7 +45,7 @@ jobs:
     with:
       ENVIRONMENT: prod
       RESOURCE_GROUP: LC.API.Production
-      APP_SERVICE_PLAN: LinuxSPBasicB1
+      APP_SERVICE_PLAN: LCWinSP
       APP_SERVICE_PLAN_RESOURCE_GROUP: LC.AppServicePlans
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
