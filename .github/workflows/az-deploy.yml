@@ -69,4 +69,4 @@ jobs:
       uses: azure/webapps-deploy@v2
       with: 
         app-name: ${{ steps.bicep.outputs.appServiceName }}
-        package: './published'
+        package: './api'
