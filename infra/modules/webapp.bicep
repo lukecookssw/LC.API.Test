@@ -20,9 +20,9 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   location: location
   properties: {
     serverFarmId: appServicePlanId
-    
     httpsOnly: true
     siteConfig: {
+      netFrameworkVersion: 'v6.0'
       alwaysOn: true
       appSettings: [
         {
