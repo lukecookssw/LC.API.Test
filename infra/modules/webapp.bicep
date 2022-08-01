@@ -4,11 +4,7 @@ param environment string
 
 param keyVaultName string
 
-param appServicePlanName string
-
-resource hostingPlan 'Microsoft.Web/serverfarms@2022-03-01' existing = {
-  name: appServicePlanName
-}
+param appServicePlanId string
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: 'ai-${projectName}-${environment}'
@@ -23,7 +19,7 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
   name: 'app-${projectName}-api-${environment}'
   location: location
   properties: {
-    serverFarmId: hostingPlan.id
+    serverFarmId: appServicePlanId
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
@@ -72,22 +68,12 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
           name: 'XDT_MicrosoftApplicationInsights_Mode'
           value: 'recommended'
         }
+        {
+          name: 'KeyVaultName'
+          value: keyVaultName
+        }
       ]
     }
-  }
-}
-
-resource appServiceConfig 'Microsoft.Web/sites/config@2021-03-01' = {
-  name: 'appsettings'
-  kind: 'string'
-  parent: appService
-  properties: {
-    appSettings: [
-      {
-        name: 'KeyVaultName'
-        value: keyVaultName
-      }
-    ]
   }
 }
 

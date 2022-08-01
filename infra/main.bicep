@@ -10,6 +10,7 @@ param location string = resourceGroup().location
 param environment string
 
 param appServicePlanName string
+param appServicePlanResourceGroup string
 
 param sqlAdministratorsLoginName string
 param sqlAdministratorsObjectId string
@@ -45,10 +46,15 @@ module sqlServer 'modules/sql.bicep' = {
   }
 }
 
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' existing = {
+  name: appServicePlanName
+  scope: resourceGroup(appServicePlanResourceGroup)
+}
+
 module appService 'modules/webapp.bicep' = {
   name: 'api-${now}'
   params: {
-    appServicePlanName: appServicePlanName
+    appServicePlanId: appServicePlan.id
     environment: environment
     location: location
     projectName: projectName
