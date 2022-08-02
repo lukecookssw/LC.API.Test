@@ -12,6 +12,7 @@ jobs:
   
   deploy_dev:
     needs: build
+    environment: dev
     name: Deploy dev
     uses: ./.github/workflows/az-deploy.yml
     with:
@@ -26,6 +27,7 @@ jobs:
 
   deploy_staging:
     needs: deploy_dev
+    environment: staging
     name: Deploy staging
     uses: ./.github/workflows/az-deploy.yml
     with:
@@ -40,6 +42,7 @@ jobs:
 
   deploy_prod:
     needs: deploy_staging
+    environment: prod
     name: Deploy prod
     uses: ./.github/workflows/az-deploy.yml
     with:
