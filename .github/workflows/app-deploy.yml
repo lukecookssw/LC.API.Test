@@ -1,0 +1,39 @@
+name: Deploy Application
+
+on:
+  workflow_call:
+    inputs:
+      ENVIRONMENT:
+        required: true
+        type: string
+      APP_SERVICE_NAME:
+        required: true
+        type: string
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+
+jobs:
+  deploy-application:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ENVIRONMENT }}
+    steps:
+
+    # Download application artifacts from build
+    - name: Download Application Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: api
+
+    # Log into Azure
+    - name: Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    # Deploy Web API
+    - name: Deploy API
+      uses: azure/webapps-deploy@v2
+      with: 
+        app-name: ${{ inputs.APP_SERVICE_NAME }}
+        package: './api.zip'
