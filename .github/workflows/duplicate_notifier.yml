@@ -37,6 +37,8 @@ jobs:
               }
             });
 
+            core.info(`Fetched timeline for issue #${issue_number}: ${JSON.stringify(timeline.data)}`);
+
             // Look for a "connected" or "referenced" event pointing to another issue
             const duplicateEvent = timeline.data.find(event =>
               (event.event === 'connected' || event.event === 'referenced') &&
