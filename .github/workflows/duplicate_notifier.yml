@@ -14,6 +14,7 @@ jobs:
           script: |
             const { owner, repo, issue } = context.payload;
             const issue_number = issue.number;
+            core.info(context.payload);
 
             // 1 Fetch all events for the issue
             const events = await github.rest.issues.listEvents({
