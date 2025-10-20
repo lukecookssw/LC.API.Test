@@ -25,28 +25,29 @@ jobs:
               return;
             }
 
-            // Fetch the timeline to look for cross-references
-            // Note: listTimeline is used instead of listEvents because it includes richer data
-            const timeline = await github.rest.issues.listEvents({
+            core.info(`Fetching timeline for issue #${issue_number}...`);
+
+            // The /timeline API is preview-only, so we have to include a special Accept header
+            const timeline = await github.request('GET /repos/{owner}/{repo}/issues/{issue_number}/timeline', {
               owner,
               repo,
-              issue_number
+              issue_number,
+              headers: {
+                accept: 'application/vnd.github.mockingbird-preview+json'
+              }
             });
 
-            // Find a cross-reference event that points to another issue
-            const crossRef = [...timeline.data]
-              .reverse()
-              .find(e => e.event === 'cross-referenced' && e.source?.issue?.number);
+            // Look for a "connected" or "referenced" event pointing to another issue
+            const duplicateEvent = timeline.data.find(event =>
+              (event.event === 'connected' || event.event === 'referenced') &&
+              event.source?.issue?.number
+            );
 
-            if (!crossRef) {
-              core.warning(`No cross-reference event found for issue #${issue_number}.`);
+            if (!duplicateEvent) {
+              core.warning(`No duplicate link found in the timeline for issue #${issue_number}`);
               return;
             }
 
-            const targetIssueNumber = crossRef.source.issue.number;
-            const targetUrl = crossRef.source.issue.html_url;
-
-            core.info(`✅ Issue #${issue_number} was closed as a duplicate of #${targetIssueNumber} (${targetUrl})`);
-
-            // Output the target issue number for later steps
-            core.setOutput('duplicate_of', targetIssueNumber);
+            const targetIssue = duplicateEvent.source.issue;
+            core.info(`✅ Found linked issue: #${targetIssue.number} (${targetIssue.html_url})`);
+            core.setOutput('duplicate_of', targetIssue.number);
