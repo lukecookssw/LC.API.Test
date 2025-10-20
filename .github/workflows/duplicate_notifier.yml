@@ -15,7 +15,7 @@ jobs:
             const { owner, repo, issue_number } = context.issue;
 
             // 1 Fetch all events for the issue
-            const events = await github.rest.issues.listEventsForIssue({
+            const events = await github.rest.issues.listEvents({
               owner,
               repo,
               issue_number,
