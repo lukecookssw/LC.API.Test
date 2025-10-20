@@ -23,6 +23,8 @@ jobs:
             // Get the issue body and all comment bodies
             const issueBody = context.payload.issue.body || '';
             const allText = [issueBody, ...comments.data.map(comment => comment.body)].join(' ');
+
+            console.log(allText);
             
             // Look for GitHub's standard duplicate patterns
             const duplicatePatterns = [
