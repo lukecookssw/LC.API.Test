@@ -1,5 +1,3 @@
-name: Duplicate Issue Notifier
-
 on:
   issues:
     types: [closed]
@@ -7,51 +5,48 @@ on:
 jobs:
   find-duplicate-target:
     runs-on: ubuntu-latest
+
     steps:
       - name: Find issue that this was closed as a duplicate of
         uses: actions/github-script@v7
         with:
           script: |
-            const { owner, repo, issue } = context.payload;
-            const issue_number = issue.number;
-            core.info(JSON.stringify(context.payload));
+            // Extract owner/repo/issue_number manually from payload
+            const payload = context.payload;
+            const owner = payload.repository.owner.login;
+            const repo = payload.repository.name;
+            const issue_number = payload.issue.number;
 
-            // 1 Fetch all events for the issue
-            const events = await github.rest.issues.listEvents({
-              owner,
-              repo,
-              issue_number,
-            });
+            core.info(`Checking issue #${issue_number} in ${owner}/${repo}...`);
 
-            // 2 Check if it was closed as duplicate
-            const closedEvent = events.data.find(
-              e => e.event === 'closed' && e.state_reason === 'duplicated'
-            );
-
-            if (!closedEvent) {
-              core.info(`Issue #${issue_number} was not closed as a duplicate.`);
+            // Only proceed if closed as duplicate
+            if (payload.issue.state_reason !== 'duplicate') {
+              core.info(`Issue #${issue_number} was closed, but not as a duplicate.`);
               return;
             }
 
-            // 3 Find the last cross-reference event before the close
-            const crossRef = [...events.data]
-              .reverse() // go from most recent to oldest
-              .find(
-                e =>
-                  e.event === 'cross-referenced' &&
-                  e.source?.issue?.number &&
-                  new Date(e.created_at) <= new Date(closedEvent.created_at)
-              );
+            // Fetch the timeline to look for cross-references
+            // Note: listTimeline is used instead of listEvents because it includes richer data
+            const timeline = await github.rest.issues.listEvents({
+              owner,
+              repo,
+              issue_number
+            });
+
+            // Find a cross-reference event that points to another issue
+            const crossRef = [...timeline.data]
+              .reverse()
+              .find(e => e.event === 'cross-referenced' && e.source?.issue?.number);
 
             if (!crossRef) {
-              core.warning(`No cross-reference found for duplicate close.`);
+              core.warning(`No cross-reference event found for issue #${issue_number}.`);
               return;
             }
 
             const targetIssueNumber = crossRef.source.issue.number;
             const targetUrl = crossRef.source.issue.html_url;
 
-            core.info(`Issue #${issue_number} was closed as a duplicate of #${targetIssueNumber} (${targetUrl})`);
+            core.info(`✅ Issue #${issue_number} was closed as a duplicate of #${targetIssueNumber} (${targetUrl})`);
 
-            // Example: export as an output for later workflow steps
+            // Output the target issue number for later steps
             core.setOutput('duplicate_of', targetIssueNumber);
