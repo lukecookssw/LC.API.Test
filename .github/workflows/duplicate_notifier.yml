@@ -5,83 +5,51 @@ on:
     types: [closed]
 
 jobs:
-  handle-duplicate:
+  find-duplicate-target:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Check if issue was closed as duplicate and handle notifications
+      - name: Find issue that this was closed as a duplicate of
         uses: actions/github-script@v7
         with:
           script: |
-            // Get all comments on the issue
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            });
-            
-            // Get the issue body and all comment bodies
-            const issueBody = context.payload.issue.body || '';
-            const allText = [issueBody, ...comments.data.map(comment => comment.body)].join(' ');
+            const { owner, repo, issue_number } = context.issue;
 
-            console.log(allText);
-            
-            // Look for GitHub's standard duplicate patterns
-            const duplicatePatterns = [
-              /duplicate\s+of\s+#?(\d+)/i,
-              /duplicates?\s*:?\s*#?(\d+)/i,
-              /dupe\s+of\s+#?(\d+)/i,
-              /#(\d+)\s+\(duplicate\)/i,
-              /closes?\s+as\s+duplicate\s+of\s+#?(\d+)/i
-            ];
-            
-            let duplicateIssue = null;
-            
-            for (const pattern of duplicatePatterns) {
-              const match = allText.match(pattern);
-              if (match) {
-                duplicateIssue = match[1];
-                break;
-              }
-            }
-            
-            if (!duplicateIssue) {
-              console.log('No duplicate reference found, skipping workflow');
+            // 1 Fetch all events for the issue
+            const events = await github.rest.issues.listEventsForIssue({
+              owner,
+              repo,
+              issue_number,
+            });
+
+            // 2 Check if it was closed as duplicate
+            const closedEvent = events.data.find(
+              e => e.event === 'closed' && e.state_reason === 'duplicated'
+            );
+
+            if (!closedEvent) {
+              core.info(`Issue #${issue_number} was not closed as a duplicate.`);
               return;
             }
-            
-            console.log(`Found duplicate reference to issue #${duplicateIssue}`);
-            
-            const author = context.payload.issue.user.login;
-            const closedIssueNumber = context.issue.number;
-            
-            // Comment on the closed duplicate issue
-            const duplicateComment = `Hi @${author}, we have closed this as a duplicate of #${duplicateIssue}. We've also @ mentioned you on that issue so you continue to receive updates on activity :)`;
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: closedIssueNumber,
-              body: duplicateComment
-            });
-            
-            console.log(`Added comment to closed issue #${closedIssueNumber}`);
-            
-            // Comment on the original issue for visibility
-            const visibilityComment = `Adding @${author} for visibility`;
-            
-            try {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: parseInt(duplicateIssue),
-                body: visibilityComment
-              });
-              console.log(`Added visibility comment to original issue #${duplicateIssue}`);
-            } catch (error) {
-              console.log(`Could not comment on issue #${duplicateIssue}: ${error.message}`);
-              // Don't fail the workflow if the original issue doesn't exist or is inaccessible
+
+            // 3 Find the last cross-reference event before the close
+            const crossRef = [...events.data]
+              .reverse() // go from most recent to oldest
+              .find(
+                e =>
+                  e.event === 'cross-referenced' &&
+                  e.source?.issue?.number &&
+                  new Date(e.created_at) <= new Date(closedEvent.created_at)
+              );
+
+            if (!crossRef) {
+              core.warning(`No cross-reference found for duplicate close.`);
+              return;
             }
-            
-            console.log(`Successfully processed duplicate issue #${closedIssueNumber} -> #${duplicateIssue}`);
-            console.log(`Author notified: ${author}`);
+
+            const targetIssueNumber = crossRef.source.issue.number;
+            const targetUrl = crossRef.source.issue.html_url;
+
+            core.info(`Issue #${issue_number} was closed as a duplicate of #${targetIssueNumber} (${targetUrl})`);
+
+            // Example: export as an output for later workflow steps
+            core.setOutput('duplicate_of', targetIssueNumber);
