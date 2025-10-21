@@ -34,11 +34,23 @@ jobs:
             let match = null;
             for (const comment of comments.data.reverse()) {
               match = regex.exec(comment.body);
-              if (match) {
-                core.info(`Found linked issue #${match[1]} from comment: "${comment.body}"`);
-                core.setOutput('duplicate_of', match[1]);
+              if (!match) {
+              core.warning(`No linked issue number found in comments for issue #${issue_number}.`);
                 return;
               }
             }
+            core.info(`Found linked issue #${match[1]} from comment: "${comment.body}"`);
+            const targetIssueNumber = match[1];
 
-            core.warning(`No linked issue number found in comments for issue #${issue_number}.`);
+            // Build the comment message
+            const message = `👋 @${author}, we've closed your issue #${issue_number} as a duplicate of this one. We've @ mentioned you here so you can keep track of updates. Thanks!`;
+
+            // Post comment on the *target* issue
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: targetIssueNumber,
+              body: message,
+            });
+
+            core.info(`💬 Comment posted on issue #${targetIssueNumber}: "${message}"`);
