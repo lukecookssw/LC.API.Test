@@ -16,6 +16,9 @@ jobs:
             const repo = payload.repository.name;
             const issue_number = payload.issue.number;
 
+            const author = payload.issue.user.login;
+            const stateReason = payload.issue.state_reason;
+
             if (payload.issue.state_reason !== 'duplicate') {
               core.info(`Issue #${issue_number} was closed, but not as a duplicate.`);
               return;
