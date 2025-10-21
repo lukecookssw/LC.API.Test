@@ -52,7 +52,7 @@ jobs:
             }
 
             // Build the comment message
-            const message = `👋 @${author} closed issue #${issue_number} as a duplicate of this one.`;
+            const message = `👋 @${author} closed issue #${issue_number} as a duplicate of this one. We've @ mentioned you here so you can keep track of activity :smile:`;
 
             // Post comment on the *target* issue
             await github.rest.issues.createComment({
