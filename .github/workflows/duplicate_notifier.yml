@@ -32,14 +32,32 @@ jobs:
             // Look for "#123" pattern in comment bodies
             const regex = /#(\d+)/g;
             let match = null;
+            let targetIssueNumber = null;
             for (const comment of comments.data.reverse()) {
               match = regex.exec(comment.body);
               if (match) {
                 core.info(`Found linked issue #${match[1]} from comment: "${comment.body}"`);
                 core.setOutput('duplicate_of', match[1]);
-                return;
+                targetIssueNumber = match[1];
+                break;
               }
             }
 
-            core.warning(`No linked issue number found in comments for issue #${issue_number}.`);
-            
+            if (!targetIssueNumber) {
+              core.warning(`No linked issue number found in comments for issue #${issue_number}.`);
+              return;
+            }
+
+            // Build the comment message
+            const message = `👋 @${author} closed issue #${issue_number} as a duplicate of this one.`;
+
+            // Post comment on the *target* issue
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: targetIssueNumber,
+              body: message,
+            });
+
+            core.info(`💬 Comment posted on issue #${targetIssueNumber}: "${message}"`);
+
