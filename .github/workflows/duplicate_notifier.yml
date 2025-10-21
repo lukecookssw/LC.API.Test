@@ -7,49 +7,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Find issue that this was closed as a duplicate of
+      - name: Find linked issue if closed as duplicate
         uses: actions/github-script@v7
         with:
           script: |
-            // Extract owner/repo/issue_number manually from payload
             const payload = context.payload;
             const owner = payload.repository.owner.login;
             const repo = payload.repository.name;
             const issue_number = payload.issue.number;
 
-            core.info(`Checking issue #${issue_number} in ${owner}/${repo}...`);
-
-            // Only proceed if closed as duplicate
             if (payload.issue.state_reason !== 'duplicate') {
               core.info(`Issue #${issue_number} was closed, but not as a duplicate.`);
               return;
             }
 
-            core.info(`Fetching timeline for issue #${issue_number}...`);
-
-            // The /timeline API is preview-only, so we have to include a special Accept header
-            const timeline = await github.request('GET /repos/{owner}/{repo}/issues/{issue_number}/timeline', {
+            // Fetch recent comments on the issue
+            const comments = await github.rest.issues.listComments({
               owner,
               repo,
               issue_number,
-              headers: {
-                accept: 'application/vnd.github.mockingbird-preview+json'
-              }
+              per_page: 10,
             });
 
-            core.info(`Fetched timeline for issue #${issue_number}: ${JSON.stringify(timeline.data)}`);
-
-            // Look for a "connected" or "referenced" event pointing to another issue
-            const duplicateEvent = timeline.data.find(event =>
-              (event.event === 'connected' || event.event === 'referenced') &&
-              event.source?.issue?.number
-            );
-
-            if (!duplicateEvent) {
-              core.warning(`No duplicate link found in the timeline for issue #${issue_number}`);
-              return;
+            // Look for "#123" pattern in comment bodies
+            const regex = /#(\d+)/g;
+            let match = null;
+            for (const comment of comments.data.reverse()) {
+              match = regex.exec(comment.body);
+              if (match) {
+                core.info(`Found linked issue #${match[1]} from comment: "${comment.body}"`);
+                core.setOutput('duplicate_of', match[1]);
+                return;
+              }
             }
 
-            const targetIssue = duplicateEvent.source.issue;
-            core.info(`✅ Found linked issue: #${targetIssue.number} (${targetIssue.html_url})`);
-            core.setOutput('duplicate_of', targetIssue.number);
+            core.warning(`No linked issue number found in comments for issue #${issue_number}.`);
