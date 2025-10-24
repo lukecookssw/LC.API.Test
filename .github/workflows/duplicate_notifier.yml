@@ -70,7 +70,9 @@ jobs:
             }
             
             // Output the list of duplicates for the next step
-            core.setOutput('duplicate_issue_numbers', duplicates.join(','));
+            const joinedDuplicates = duplicates.join(', ');
+            console.log(`Joined dupes: ${joinedDuplicates}`);
+            core.setOutput('duplicate_issue_numbers', joinedDuplicates);
 
       - name: 💬 Add Comment to Duplicates
         uses: actions/github-script@v7
