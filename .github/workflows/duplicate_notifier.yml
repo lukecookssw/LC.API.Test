@@ -89,7 +89,9 @@ jobs:
 
             // Loop through the duplicate issues and add a comment to each
             for (const issueNumberString of duplicateIssueNumbers) {
+              console.log('processing issue number string: ' + issueNumberString);
               const issueNumber = parseInt(issueNumberString, 10);
+              console.log('parsed issue number: ' + issueNumber);
               if (!isNaN(issueNumber)) { // Guard against invalid number
                 try {
                 console.log('creating a comment on issue #' + issueNumber);
