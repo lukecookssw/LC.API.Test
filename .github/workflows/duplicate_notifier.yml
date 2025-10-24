@@ -76,14 +76,17 @@ jobs:
 
       - name: 💬 Add Comment to Duplicates
         uses: actions/github-script@v7
+        env:
+          DUPLICATE_ISSUE_NUMBERS: ${{ steps.find_duplicates.outputs.duplicate_issue_numbers }}
         # Only run this step if duplicates were found
         if: steps.find_duplicates.outputs.duplicate_issue_numbers != ''
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            console.log('raw duplicate issue numbers input: ' + JSON.stringify(core.getInput('duplicate_issue_numbers')));
-            const duplicateIssueNumbers = core.getInput('duplicate_issue_numbers').split(',');
-            console.log('parsed duplicate issue numbers array: ' + JSON.stringify(duplicateIssueNumbers));
+            
+            const duplicateIssueNumbers = process.env.DUPLICATE_ISSUE_NUMBERS.split(',');
+            console.log('Duplicate issue numbers to process: ' + duplicateIssueNumbers);
+            console.log('Number of duplicate issues: ' + duplicateIssueNumbers.length);
             const masterIssueNumber = context.payload.issue.number;
             const repo = context.repo;
             const commentBody = `Hey! This issue was fixed! 🎉 The issue was marked as a duplicate, and the fix was tracked in the master issue: **#${masterIssueNumber}**`;
