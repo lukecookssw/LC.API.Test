@@ -1,24 +1,19 @@
 name: Notify Closed Duplicates
 
 on:
-  # 1. Trigger when an issue is closed
+  # Trigger when an issue is closed (the master issue is closed)
   issues:
     types: [closed]
 
 jobs:
   notify-duplicates:
-    # 2. Only run if the closure comment or context indicates a fix was applied
-    # This is a critical safety check: we only want to notify if the master issue 
-    # was closed because the problem was FIXED, not for other reasons.
-    # We can check the closure reason (if provided by a PR) or a label.
-    # For simplicity here, we assume if it's closed, it's fixed.
-    # For a stricter check, you might inspect the closing pull request or labels.
+    # Only proceed if the master issue is closed
     if: github.event.issue.state == 'closed'
     
     runs-on: ubuntu-latest
     
     steps:
-      - name: 🔍 Find Closed Duplicate Issues
+      - name: 🔍 Find Closed Duplicate Issues using GraphQL
         id: find_duplicates
         uses: actions/github-script@v7
         with:
@@ -28,23 +23,21 @@ jobs:
             const repo = context.repo;
             const duplicates = [];
 
-            // GraphQL Query to get the timeline of the master issue.
-            // We look for CROSS_REFERENCED_EVENTs, which means another issue 
-            // mentioned the master issue (a common pattern for duplicates).
+            // The correct GraphQL query targeting the MarkedAsDuplicateEvent
             const query = `
-              query ($owner: String!, $repo: String!, $issueNumber: Int!) {
+              query GetMarkedDuplicates($owner: String!, $repo: String!, $issueNumber: Int!) {
                 repository(owner: $owner, name: $repo) {
                   issue(number: $issueNumber) {
-                    timelineItems(itemTypes: [CROSS_REFERENCED_EVENT], first: 100) {
+                    timelineItems(itemTypes: [MARKED_AS_DUPLICATE_EVENT], first: 100) {
                       nodes {
-                        ... on CrossReferencedEvent {
-                          source {
+                        ... on MarkedAsDuplicateEvent {
+                          duplicate {
                             ... on Issue {
                               number
                               state
+                              url
                             }
                           }
-                          isCrossRepository
                         }
                       }
                     }
@@ -53,26 +46,26 @@ jobs:
               }
             `;
             
+            // Execute the GraphQL query
             const result = await github.graphql(query, {
               owner: repo.owner,
               repo: repo.repo,
               issueNumber: masterIssueNumber
             });
 
-            console.log(`Found ${result.repository.issue.timelineItems.nodes.length} cross-references.`);
+            const timelineNodes = result.repository.issue.timelineItems.nodes;
+            console.log(`Found ${timelineNodes.length} 'Marked as Duplicate' events on the master issue's timeline.`);
 
-            // Process the results
-            for (const item of result.repository.issue.timelineItems.nodes) {
-              const source = item.source;
-              // 1. Ensure the reference source is an Issue (not a Pull Request)
-              // 2. Ensure the source issue is CLOSED (i.e., it was closed as a duplicate)
-              // 3. Ensure it's not the master issue itself
-              if (source && source.number !== masterIssueNumber && source.state === 'CLOSED') {
-                console.log(`Potential duplicate found: #${source.number}`);
-                // In a real-world scenario, you might add logic here to check for 
-                // a 'duplicate' label or a specific closing comment on the source issue 
-                // to be 100% sure it was closed AS a duplicate.
-                duplicates.push(source.number);
+            // Process the results and filter
+            for (const node of timelineNodes) {
+              // The duplicate object contains the details of the issue closed as a duplicate
+              const duplicateIssue = node.duplicate;
+
+              // 1. Check if the duplicate object is an Issue
+              // 2. Check if the duplicate Issue is also CLOSED (it almost always will be, but this is robust)
+              if (duplicateIssue && duplicateIssue.number && duplicateIssue.state === 'CLOSED') {
+                console.log(`Duplicate issue found: #${duplicateIssue.number}`);
+                duplicates.push(duplicateIssue.number);
               }
             }
             
@@ -82,7 +75,7 @@ jobs:
 
       - name: 💬 Add Comment to Duplicates
         uses: actions/github-script@v7
-        # 3. Only run this step if duplicates were found
+        # Only run this step if duplicates were found
         if: steps.find_duplicates.outputs.duplicate_issue_numbers != ''
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -90,23 +83,24 @@ jobs:
             const duplicateIssueNumbers = core.getInput('duplicate_issue_numbers').split(',');
             const masterIssueNumber = context.payload.issue.number;
             const repo = context.repo;
-            const commentBody = `Hey! This issue was fixed! 🎉\n\nThe fix was tracked in the master issue: **#${masterIssueNumber}**`;
+            const commentBody = `Hey! This issue was fixed! 🎉 The issue was marked as a duplicate, and the fix was tracked in the master issue: **#${masterIssueNumber}**`;
 
-            console.log(`Adding comment to ${duplicateIssueNumbers.length} duplicate issues.`);
+            console.log(`Attempting to comment on ${duplicateIssueNumbers.length} duplicate issue(s).`);
 
             // Loop through the duplicate issues and add a comment to each
-            for (const issueNumber of duplicateIssueNumbers) {
-              if (issueNumber) { // Guard against empty string from split
+            for (const issueNumberString of duplicateIssueNumbers) {
+              const issueNumber = parseInt(issueNumberString, 10);
+              if (!isNaN(issueNumber)) { // Guard against invalid number
                 try {
                   await github.rest.issues.createComment({
                     owner: repo.owner,
                     repo: repo.repo,
-                    issue_number: parseInt(issueNumber),
+                    issue_number: issueNumber,
                     body: commentBody
                   });
                   console.log(`Successfully commented on #${issueNumber}`);
                 } catch (error) {
-                  console.error(`Failed to comment on #${issueNumber}: ${error.message}`);
+                  console.error(`Failed to comment on #${issueNumber}. Error: ${error.message}`);
                 }
               }
             }
