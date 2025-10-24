@@ -92,6 +92,10 @@ jobs:
               const issueNumber = parseInt(issueNumberString, 10);
               if (!isNaN(issueNumber)) { // Guard against invalid number
                 try {
+                console.log('creating a comment on issue #' + issueNumber);
+                console.log('owner: ' + repo.owner);
+                console.log('repo: ' + repo.repo);
+                console.log('body: ' + commentBody);
                   await github.rest.issues.createComment({
                     owner: repo.owner,
                     repo: repo.repo,
