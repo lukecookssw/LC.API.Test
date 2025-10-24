@@ -80,7 +80,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            console.log('raw duplicate issue numbers input: ' + core.getInput('duplicate_issue_numbers'));
             const duplicateIssueNumbers = core.getInput('duplicate_issue_numbers').split(',');
+            console.log('parsed duplicate issue numbers array: ' + duplicateIssueNumbers);
             const masterIssueNumber = context.payload.issue.number;
             const repo = context.repo;
             const commentBody = `Hey! This issue was fixed! 🎉 The issue was marked as a duplicate, and the fix was tracked in the master issue: **#${masterIssueNumber}**`;
