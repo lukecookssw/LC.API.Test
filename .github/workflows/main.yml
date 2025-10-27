@@ -10,10 +10,10 @@ jobs:
     name: Build and upload artifacts
     uses: ./.github/workflows/build.yml
   
-  deploy_dev:
+  deploy_infra_dev:
     needs: build
-    name: Deploy dev
-    uses: ./.github/workflows/az-deploy.yml
+    name: Deploy dev infrastructure
+    uses: ./.github/workflows/infra-deploy.yml
     with:
       ENVIRONMENT: dev
       RESOURCE_GROUP: LC.API.Dev
@@ -24,10 +24,20 @@ jobs:
       SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
       SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
 
-  deploy_staging:
-    needs: deploy_dev
-    name: Deploy staging
-    uses: ./.github/workflows/az-deploy.yml
+  deploy_app_dev:
+    needs: deploy_infra_dev
+    name: Deploy dev application
+    uses: ./.github/workflows/app-deploy.yml
+    with:
+      ENVIRONMENT: dev
+      APP_SERVICE_NAME: ${{ needs.deploy_infra_dev.outputs.appServiceName }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+  deploy_infra_staging:
+    needs: deploy_app_dev
+    name: Deploy staging infrastructure
+    uses: ./.github/workflows/infra-deploy.yml
     with:
       ENVIRONMENT: staging
       RESOURCE_GROUP: LC.API.Staging
@@ -38,10 +48,20 @@ jobs:
       SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
       SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
 
-  deploy_prod:
-    needs: deploy_staging
-    name: Deploy prod
-    uses: ./.github/workflows/az-deploy.yml
+  deploy_app_staging:
+    needs: deploy_infra_staging
+    name: Deploy staging application
+    uses: ./.github/workflows/app-deploy.yml
+    with:
+      ENVIRONMENT: staging
+      APP_SERVICE_NAME: ${{ needs.deploy_infra_staging.outputs.appServiceName }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
+  deploy_infra_prod:
+    needs: deploy_app_staging
+    name: Deploy prod infrastructure
+    uses: ./.github/workflows/infra-deploy.yml
     with:
       ENVIRONMENT: prod
       RESOURCE_GROUP: LC.API.Production
@@ -51,3 +71,13 @@ jobs:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       SQL_ADMIN_GROUP: ${{ secrets.SQL_ADMIN_GROUP }}
       SQL_ADMIN_GROUP_SID: ${{ secrets.SQL_ADMIN_GROUP_SID }}
+
+  deploy_app_prod:
+    needs: deploy_infra_prod
+    name: Deploy prod application
+    uses: ./.github/workflows/app-deploy.yml
+    with:
+      ENVIRONMENT: prod
+      APP_SERVICE_NAME: ${{ needs.deploy_infra_prod.outputs.appServiceName }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
